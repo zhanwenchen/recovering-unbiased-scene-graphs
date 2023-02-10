@@ -54,7 +54,7 @@ error_check()
 export PROJECT_DIR=${HOME}/dlfe
 export MODEL_NAME="${SLURM_JOB_ID}_${SLURM_JOB_NAME}"
 export LOGDIR=${PROJECT_DIR}/log
-export DATA_DIR_VG_RCNN=/project/sds-rise/zhanwen/
+export DATA_DIR_VG_RCNN=/project/sds-rise/zhanwen/datasets
 MODEL_DIRNAME=${PROJECT_DIR}/checkpoints/${MODEL_NAME}/
 
 if [ -d "$MODEL_DIRNAME" ]; then
