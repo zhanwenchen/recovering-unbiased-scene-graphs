@@ -77,13 +77,13 @@ def get_center_delta(features, centers, targets, alpha):
 
 def train(cfg, local_rank, distributed, logger, writer=None):
     debug_print(logger, 'prepare training')
-    model = build_detection_model(cfg) 
+    model = build_detection_model(cfg)
     debug_print(logger, 'end model construction')
 
     # modules that should be always set in eval mode
     # their eval() method should be called after model.train() is called
     eval_modules = (model.rpn, model.backbone, model.roi_heads.box,)
- 
+
     fix_eval_modules(eval_modules)
 
     # NOTE, we slow down the LR of the layers start with the names in slow_heads
@@ -96,7 +96,7 @@ def train(cfg, local_rank, distributed, logger, writer=None):
     # load pretrain layers to new layers
     load_mapping = {"roi_heads.relation.box_feature_extractor" : "roi_heads.box.feature_extractor",
                     "roi_heads.relation.union_feature_extractor.feature_extractor" : "roi_heads.box.feature_extractor"}
-    
+
     if cfg.MODEL.ATTRIBUTE_ON:
         load_mapping["roi_heads.relation.att_feature_extractor"] = "roi_heads.attribute.feature_extractor"
         load_mapping["roi_heads.relation.union_feature_extractor.att_feature_extractor"] = "roi_heads.attribute.feature_extractor"
@@ -133,7 +133,7 @@ def train(cfg, local_rank, distributed, logger, writer=None):
     )
     # if there is certain checkpoint in output_dir, load it, else load pretrained detector
     if checkpointer.has_checkpoint():
-        extra_checkpoint_data = checkpointer.load(cfg.MODEL.PRETRAINED_DETECTOR_CKPT, 
+        extra_checkpoint_data = checkpointer.load(cfg.MODEL.PRETRAINED_DETECTOR_CKPT,
                                        update_schedule=cfg.SOLVER.UPDATE_SCHEDULE_DURING_LOAD)
         arguments.update(extra_checkpoint_data)
     else:
@@ -208,20 +208,20 @@ def train(cfg, local_rank, distributed, logger, writer=None):
         # losses_reduced = sum(loss for loss in loss_dict_reduced.values())
         losses_reduced = sum(loss for key, loss in loss_dict_reduced.items() if key != 'rel_labels_one_hot_count')
         meters.update(loss=losses_reduced, **loss_dict_reduced)
-        
+
 
         optimizer.zero_grad()
         # Note: If mixed precision is not used, this ends up doing nothing
         # Otherwise apply loss scaling for mixed-precision recipe
         with amp.scale_loss(losses, optimizer) as scaled_losses:
             scaled_losses.backward()
-        
+
         # Center Loss version 1: https://github.com/KaiyangZhou/pytorch-center-loss
         # if cfg.MODEL.PCPL_CENTER_LOSS:
         #     for param in model.roi_heads.relation.loss_evaluator.center_loss.parameters():
         #         # lr_cent is learning rate for center loss, e.g. lr_cent = 0.5
         #         param.grad.data *= (cfg.MODEL.CENTER_LOSS_LR / (cfg.MODEL.CENTER_LOSS_ALPHA * cfg.SOLVER.BASE_LR))
-        
+
         # add clip_grad_norm from MOTIFS, tracking gradient, used for debug
         verbose = (iteration % cfg.SOLVER.PRINT_GRAD_FREQ) == 0 or print_first_grad # print grad or not
         print_first_grad = False
@@ -233,9 +233,10 @@ def train(cfg, local_rank, distributed, logger, writer=None):
         if cfg.MODEL.PCPL_CENTER_LOSS:
             # import pdb; pdb.set_trace()
             alpha = cfg.MODEL.CENTER_LOSS_ALPHA
-            centers = model.module.roi_heads.relation.loss_evaluator.centers.detach()
+            # centers = model.module.roi_heads.relation.loss_evaluator.centers.detach()
+            centers = model.roi_heads.relation.loss_evaluator.centers.detach()
             center_deltas = get_center_delta(rel_features, centers, rel_targets, alpha)
-            model.module.roi_heads.relation.loss_evaluator.centers = centers - center_deltas
+            model.roi_heads.relation.loss_evaluator.centers = centers - center_deltas
 
         batch_time = time.time() - end
         end = time.time()
@@ -267,10 +268,10 @@ def train(cfg, local_rank, distributed, logger, writer=None):
                 for name, meter in meters.meters.items():
                     if name == 'rel_labels_one_hot_count':
                         selected_predicates = [
-                                'on', 'has', 'wearing', 'of', 'in', 'near', 'behind', 'with', 'holding', 'above', 
-                                'sitting on', 'wears', 'under', 'riding', 'in front of', 'standing on', 'at', 'attached to', 'carrying', 'walking on', 
-                                'over', 'for', 'looking at', 'watching', 'hanging from', 'parked on', 'laying on', 'belonging to', 'eating', 'and', 
-                                'using', 'covering', 'between', 'along', 'covered in', 'part of', 'lying on', 'on back of', 'to', 'walking in', 
+                                'on', 'has', 'wearing', 'of', 'in', 'near', 'behind', 'with', 'holding', 'above',
+                                'sitting on', 'wears', 'under', 'riding', 'in front of', 'standing on', 'at', 'attached to', 'carrying', 'walking on',
+                                'over', 'for', 'looking at', 'watching', 'hanging from', 'parked on', 'laying on', 'belonging to', 'eating', 'and',
+                                'using', 'covering', 'between', 'along', 'covered in', 'part of', 'lying on', 'on back of', 'to', 'walking in',
                                 'mounted on', 'across', 'against', 'from', 'growing on', 'painted on', 'playing', 'made of', 'flying in', 'says'
                             ]
                         predicate_to_idx = {predicate:idx for idx, predicate in vg_dict['idx_to_predicate'].items()}
@@ -295,7 +296,7 @@ def train(cfg, local_rank, distributed, logger, writer=None):
             if cfg.LOG_TB and writer is not None:
                 metric_name = 'Val/mR_100' if cfg.TRAIN.MONITOR_MEAN_RECALL else 'Val/Recall_100'
                 writer.add_scalar(metric_name, val_result, iteration)
- 
+
         # scheduler should be called after optimizer.step() in pytorch>=1.1.0
         # https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate
         if cfg.SOLVER.SCHEDULE.TYPE == "WarmupReduceLROnPlateau":

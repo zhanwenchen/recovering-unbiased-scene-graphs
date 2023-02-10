@@ -2,7 +2,12 @@
 """Centralized catalog of paths."""
 
 import os
+from os import environ as os_environ
+from os.path import join as os_path_join
 import copy
+
+
+DATASETS_PATH = os_environ['DATA_DIR_VG_RCNN']
 
 
 class DatasetCatalog(object):
@@ -106,16 +111,16 @@ class DatasetCatalog(object):
             "ann_file": "cityscapes/annotations/instancesonly_filtered_gtFine_test.json"
         },
         "VG_stanford_filtered": {
-            "img_dir": "vg/VG_100K",
-            "roidb_file": "vg/VG-SGG.h5",
-            "dict_file": "vg/VG-SGG-dicts.json",
-            "image_file": "vg/image_data.json",
+            "img_dir": os_path_join(DATASETS_PATH, "vg/VG_100K"),
+            "roidb_file": os_path_join(DATASETS_PATH, "vg/VG-SGG.h5"),
+            "dict_file": os_path_join(DATASETS_PATH, "vg/VG-SGG-dicts.json"),
+            "image_file": os_path_join(DATASETS_PATH, "vg/image_data.json"),
         },
         "VG_stanford_filtered_with_attribute": {
-            "img_dir": "vg/VG_100K",
-            "roidb_file": "vg/VG-SGG-with-attri.h5",
-            "dict_file": "vg/VG-SGG-dicts-with-attri.json",
-            "image_file": "vg/image_data.json",
+            "img_dir": os_path_join(DATASETS_PATH, "vg/VG_100K"),
+            "roidb_file": os_path_join(DATASETS_PATH, "vg/VG-SGG-with-attri.h5"),
+            "dict_file": os_path_join(DATASETS_PATH, "vg/VG-SGG-dicts-with-attri.json"),
+            "image_file": os_path_join(DATASETS_PATH, "vg/image_data.json"),
         },
     }
 
@@ -160,7 +165,7 @@ class DatasetCatalog(object):
             args['flip_aug'] = cfg.MODEL.FLIP_AUG
             args['custom_eval'] = cfg.TEST.CUSTUM_EVAL
             args['custom_path'] = cfg.TEST.CUSTUM_PATH
-            
+
             # soft transfer learning
             args['stl_train'] = cfg.MODEL.STL_TRAIN
             args['stl_train_label_path'] = cfg.MODEL.STL_TRAIN_LABEL_PATH
@@ -175,7 +180,7 @@ class DatasetCatalog(object):
             # multi-label training
             args['multi_label_training'] = cfg.TRAIN.MULTI_LABEL_TRAINING
             # args['c_hmc'] = cfg.TRAIN.C_HMC or cfg.TEST.C_HMC
-            
+
             if cfg.MODEL.ROI_RELATION_HEAD.USE_GT_BOX:
                 if cfg.MODEL.ROI_RELATION_HEAD.USE_GT_OBJECT_LABEL:
                     args['mode'] = 'predcls'
