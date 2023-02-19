@@ -49,15 +49,15 @@ MODEL_DIRNAME=${PROJECT_DIR}/checkpoints/${MODEL_NAME}/
 if [ -d "$MODEL_DIRNAME" ]; then
   error_exit "Aborted: ${MODEL_DIRNAME} exists." 2>&1 | tee -a ${LOGDIR}/${SLURM_JOB_NAME}_${SLURM_JOB_ID}.log
 else
-  export CUDA_VISIBLE_DEVICES=0
-  export BATCH_SIZE=16
-  export MAX_ITER=50000
+  export CUDA_VISIBLE_DEVICES=0,1
+  export BATCH_SIZE=32
+  export MAX_ITER=30000
   export CONFIG_FILE=configs/e2e_relation_X_101_32_8_FPN_1x.yaml
   export DATA_DIR_VG_RCNN=${HOME}/datasets
   export NUM_GPUS=$(echo $CUDA_VISIBLE_DEVICES | tr -cd , | wc -c); ((NUM_GPUS++))
   export USE_GT_BOX=True
   export USE_GT_OBJECT_LABEL=True
-  export PRE_VAL=False
+  export PRE_VAL=True
   export PORT=$(comm -23 <(seq 49152 65535 | sort) <(ss -Htan | awk '{print $4}' | cut -d':' -f2 | sort -u) | shuf | head -n 1)
   export WEIGHT="''"
 
