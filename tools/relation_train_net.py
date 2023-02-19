@@ -234,10 +234,15 @@ def train(cfg, local_rank, distributed, logger, writer=None):
         if cfg.MODEL.PCPL_CENTER_LOSS:
             # import pdb; pdb.set_trace()
             alpha = cfg.MODEL.CENTER_LOSS_ALPHA
-            # centers = model.module.roi_heads.relation.loss_evaluator.centers.detach()
-            centers = model.roi_heads.relation.loss_evaluator.centers.detach()
+            if distributed:
+                centers = model.module.roi_heads.relation.loss_evaluator.centers.detach()
+            else:
+                centers = model.roi_heads.relation.loss_evaluator.centers.detach()
             center_deltas = get_center_delta(rel_features, centers, rel_targets, alpha)
-            model.roi_heads.relation.loss_evaluator.centers = centers - center_deltas
+            if distributed:
+                model.module.roi_heads.relation.loss_evaluator.centers = centers - center_deltas
+            else:
+                model.roi_heads.relation.loss_evaluator.centers = centers - center_deltas
 
         batch_time = time.time() - end
         end = time.time()
